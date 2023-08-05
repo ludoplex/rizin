@@ -142,7 +142,7 @@ def _escape(s):
 
 
 def strornull(s):
-    return '"' + _escape(s) + '"' if s is not None else "NULL"
+    return f'"{_escape(s)}"' if s is not None else "NULL"
 
 
 def strip(s):
@@ -152,7 +152,7 @@ def strip(s):
 class Arg:
     def __init__(self, cd, c):
         if "name" not in c or "type" not in c:
-            print("Argument of %s should have `name`/`type` fields" % (cd.name,))
+            print(f"Argument of {cd.name} should have `name`/`type` fields")
             sys.exit(1)
 
         self.cd = cd
@@ -169,21 +169,19 @@ class Arg:
         self.choices_cb = c.pop("choices_cb", None)
         if c.keys():
             print(
-                "Argument %s for command %s has unrecognized properties: %s."
-                % (self.name, self.cd.name, c.keys())
+                f"Argument {self.name} for command {self.cd.name} has unrecognized properties: {c.keys()}."
             )
             sys.exit(1)
 
         if self.default_value is not None and self.optional is not None:
             print(
-                "Argument %s for command %s has both optional and default_value."
-                % (self.name, self.cd.name)
+                f"Argument {self.name} for command {self.cd.name} has both optional and default_value."
             )
             sys.exit(1)
 
     def _get_choices_cname(self):
         if self.type == "RZ_CMD_ARG_TYPE_CHOICES":
-            return self.cd.cname + "_" + compute_cname(self.name) + "_choices"
+            return f"{self.cd.cname}_{compute_cname(self.name)}_choices"
 
         raise TypeError("_get_choices_cname should be called on ARG_TYPE_CHOICES only")
 
@@ -240,7 +238,7 @@ class Arg:
                 cname=self._get_choices_cname(),
                 choices=", ".join(
                     [
-                        '"%s"' % (x,) if x != "NULL" else x
+                        f'"{x}"' if x != "NULL" else x
                         for x in self.choices + ["NULL"]
                     ]
                 ),
@@ -249,15 +247,13 @@ class Arg:
 
     def decl(self):
         if self.type == "RZ_CMD_ARG_TYPE_CHOICES" and self.choices_cb is not None:
-            return self.choices_cb, "RZ_IPI char **%s(RzCore *core);" % (
-                self.choices_cb,
-            )
+            return self.choices_cb, f"RZ_IPI char **{self.choices_cb}(RzCore *core);"
         return None, None
 
 
 def format_detail_entry(c):
     if "text" not in c or "comment" not in c:
-        print("No `text`/`comment` fields for DetailEntry %s" % (c,))
+        print(f"No `text`/`comment` fields for DetailEntry {c}")
         sys.exit(1)
 
     text = strip(c["text"])
@@ -274,7 +270,7 @@ def format_detail_entry(c):
 class Detail:
     def __init__(self, cd, c):
         if "name" not in c or "entries" not in c:
-            print("No `name`/`entries` fields for Detail %s" % (c,))
+            print(f"No `name`/`entries` fields for Detail {c}")
             sys.exit(1)
 
         self.cd = cd
@@ -283,13 +279,12 @@ class Detail:
         self.entries = [format_detail_entry(x) for x in c.pop("entries")]
         if c.keys():
             print(
-                "Detail %s for command %s has unrecognized properties: %s."
-                % (self.name, self.cd.name, c.keys())
+                f"Detail {self.name} for command {self.cd.name} has unrecognized properties: {c.keys()}."
             )
             sys.exit(1)
 
     def get_detail_entries_cname(self):
-        return self.cd.cname + "_" + compute_cname(self.name) + "_detail_entries"
+        return f"{self.cd.cname}_{compute_cname(self.name)}_detail_entries"
 
     def __str__(self):
         return DESC_HELP_DETAIL_TEMPLATE.format(
@@ -311,24 +306,26 @@ class CmdDesc:
     c_details = {}
 
     def _process_details(self, c):
-        if "details" in c and isinstance(c["details"], list):
-            self.details = [Detail(self, x) for x in c.pop("details", [])]
-        elif "details" in c and isinstance(c["details"], str):
-            self.details_alias = c.pop("details")
+        if "details" in c:
+            if isinstance(c["details"], list):
+                self.details = [Detail(self, x) for x in c.pop("details", [])]
+            elif isinstance(c["details"], str):
+                self.details_alias = c.pop("details")
         if "details_cb" in c and isinstance(c["details_cb"], str):
             self.details_cb = c.pop("details_cb")
 
     def _process_args(self, c):
-        if "args" in c and isinstance(c["args"], list):
-            self.args = [Arg(self, x) for x in c.pop("args", [])]
-            if (
-                self.args
-                and self.args[-1].type in CD_ARG_LAST_TYPES
-                and self.args[-1].flags is None
-            ):
-                self.args[-1].flags = "RZ_CMD_ARG_FLAG_LAST"
-        elif "args" in c and isinstance(c["args"], str):
-            self.args_alias = c.pop("args")
+        if "args" in c:
+            if isinstance(c["args"], list):
+                self.args = [Arg(self, x) for x in c.pop("args", [])]
+                if (
+                    self.args
+                    and self.args[-1].type in CD_ARG_LAST_TYPES
+                    and self.args[-1].flags is None
+                ):
+                    self.args[-1].flags = "RZ_CMD_ARG_FLAG_LAST"
+            elif isinstance(c["args"], str):
+                self.args_alias = c.pop("args")
 
     def _set_type(self, c):
         if "type" in c:
@@ -341,26 +338,26 @@ class CmdDesc:
             self.type = CD_TYPE_ARGV
 
     def _set_subcommands(self, c, yamls):
-        if "subcommands" in c and isinstance(c["subcommands"], list):
-            # The list of subcommands is embedded in the current file
-            self.subcommands = [
-                CmdDesc(yamls, x, self, i)
-                for i, x in enumerate(c.pop("subcommands", []))
-            ]
-        elif "subcommands" in c and isinstance(c["subcommands"], str):
-            # The list of subcommands is in another file
-            subcommands_name = c.pop("subcommands")
-            if subcommands_name not in yamls:
-                print(
-                    "Command %s referenced another YAML file (%s) that is not passed as arg to cmd_descs_generate.py."
-                    % (self.name, subcommands_name)
-                )
-                sys.exit(1)
+        if "subcommands" in c:
+            if isinstance(c["subcommands"], list):
+                # The list of subcommands is embedded in the current file
+                self.subcommands = [
+                    CmdDesc(yamls, x, self, i)
+                    for i, x in enumerate(c.pop("subcommands", []))
+                ]
+            elif isinstance(c["subcommands"], str):
+                # The list of subcommands is in another file
+                subcommands_name = c.pop("subcommands")
+                if subcommands_name not in yamls:
+                    print(
+                        f"Command {self.name} referenced another YAML file ({subcommands_name}) that is not passed as arg to cmd_descs_generate.py."
+                    )
+                    sys.exit(1)
 
-            external_c = yamls[subcommands_name]
-            self.subcommands = [
-                CmdDesc(yamls, x, self, i) for i, x in enumerate(external_c)
-            ]
+                external_c = yamls[subcommands_name]
+                self.subcommands = [
+                    CmdDesc(yamls, x, self, i) for i, x in enumerate(external_c)
+                ]
 
         # handle the exec_cd, which is a cd that has the same name as its parent
         if (
@@ -428,11 +425,11 @@ class CmdDesc:
 
     def _validate(self, c):
         if c.keys():
-            print("Command %s has unrecognized properties: %s." % (self.name, c.keys()))
+            print(f"Command {self.name} has unrecognized properties: {c.keys()}.")
             sys.exit(1)
 
         if self.type not in CD_VALID_TYPES:
-            print("Command %s does not have a valid type." % (self.name,))
+            print(f"Command {self.name} does not have a valid type.")
             sys.exit(1)
 
         if (
@@ -440,7 +437,7 @@ class CmdDesc:
             in [CD_TYPE_ARGV, CD_TYPE_ARGV_MODES, CD_TYPE_ARGV_STATE, CD_TYPE_OLDINPUT]
             and not self.cname
         ):
-            print("Command %s does not have cname field" % (self.name,))
+            print(f"Command {self.name} does not have cname field")
             sys.exit(1)
 
         if (
@@ -450,8 +447,7 @@ class CmdDesc:
             and self.type not in [CD_TYPE_INNER, CD_TYPE_FAKE]
         ):
             print(
-                "If a command has the same name as its parent, it can only be the first child. See parent of Command %s"
-                % (self.cname,)
+                f"If a command has the same name as its parent, it can only be the first child. See parent of Command {self.cname}"
             )
             sys.exit(1)
 
@@ -460,11 +456,11 @@ class CmdDesc:
             CD_TYPE_INNER,
             CD_TYPE_OLDINPUT,
         ]:
-            print("The parent of %s is of the wrong type" % (self.cname,))
+            print(f"The parent of {self.cname} is of the wrong type")
             sys.exit(1)
 
         if self.cname in CmdDesc.c_cds:
-            print("Another command already has the same cname as %s" % (self.cname,))
+            print(f"Another command already has the same cname as {self.cname}")
             sys.exit(1)
 
         if (
@@ -472,7 +468,7 @@ class CmdDesc:
             and self.args is None
             and self.args_alias is None
         ):
-            print("Specify arguments for command %s" % (self.name,))
+            print(f"Specify arguments for command {self.name}")
             sys.exit(1)
 
     def get_handler_cname(self):
@@ -487,14 +483,14 @@ class CmdDesc:
 
     @classmethod
     def get_arg_cname(cls, cd):
-        return cd.cname + "_args"
+        return f"{cd.cname}_args"
 
     @classmethod
     def get_detail_cname(cls, cd):
-        return cd.cname + "_details"
+        return f"{cd.cname}_details"
 
     def get_help_cname(self):
-        return self.cname + "_help"
+        return f"{self.cname}_help"
 
     def __str__(self):
         out = ""
@@ -509,7 +505,7 @@ class CmdDesc:
             )
             details_cname = CmdDesc.get_detail_cname(self)
         elif self.details_alias is not None:
-            details_cname = self.details_alias + "_details"
+            details_cname = f"{self.details_alias}_details"
 
         if self.args is not None:
             out += "\n".join(
@@ -521,7 +517,7 @@ class CmdDesc:
             )
             args_cname = CmdDesc.get_arg_cname(self)
         elif self.args_alias is not None:
-            args_cname = self.args_alias + "_args"
+            args_cname = f"{self.args_alias}_args"
 
         description = (
             DESC_HELP_TEMPLATE_DESCRIPTION.format(
@@ -612,7 +608,7 @@ def createcd_typegroup(cd):
             name=strornull(cd.name),
             modes=" | ".join(cd.exec_cd.modes),
             handler_cname=cd.exec_cd.get_handler_cname(),
-            help_cname_ref="&" + cd.exec_cd.get_help_cname(),
+            help_cname_ref=f"&{cd.exec_cd.get_help_cname()}",
             group_help_cname=cd.get_help_cname(),
         )
         if cd.exec_cd.default_mode is not None:
@@ -630,7 +626,7 @@ def createcd_typegroup(cd):
             name=strornull(cd.name),
             modes=" | ".join(cd.exec_cd.modes),
             handler_cname=cd.exec_cd.get_handler_cname(),
-            help_cname_ref="&" + cd.exec_cd.get_help_cname(),
+            help_cname_ref=f"&{cd.exec_cd.get_help_cname()}",
             group_help_cname=cd.get_help_cname(),
         )
         if cd.exec_cd.default_mode is not None:
@@ -646,8 +642,11 @@ def createcd_typegroup(cd):
             cname=cd.cname,
             parent_cname=cd.parent.cname,
             name=strornull(cd.name),
-            handler_cname=(cd.exec_cd and cd.exec_cd.get_handler_cname()) or "NULL",
-            help_cname_ref=(cd.exec_cd and "&" + cd.exec_cd.get_help_cname()) or "NULL",
+            handler_cname=(cd.exec_cd and cd.exec_cd.get_handler_cname())
+            or "NULL",
+            help_cname_ref=cd.exec_cd
+            and f"&{cd.exec_cd.get_help_cname()}"
+            or "NULL",
             group_help_cname=cd.get_help_cname(),
         )
         subcommands = (
@@ -790,8 +789,7 @@ def handler2decl(cd, cd_type, handler_name, db_names):
 
     if cd.details_cb is not None and cd.details_cb not in db_names:
         out.append(
-            "RZ_IPI RzCmdDescDetail *%s(RzCore *core, int argc, const char **argv);"
-            % (cd.details_cb,)
+            f"RZ_IPI RzCmdDescDetail *{cd.details_cb}(RzCore *core, int argc, const char **argv);"
         )
         db_names.add(cd.details_cb)
 

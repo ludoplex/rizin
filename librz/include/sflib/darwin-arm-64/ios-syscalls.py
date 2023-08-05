@@ -12,7 +12,7 @@ def chk(x):
 
 dev_pid = "23f88587e12c30376f8ab0b05236798fdfa4e853/4903"
 
-rz = rzpipe.open("frida://" + dev_pid)
+rz = rzpipe.open(f"frida://{dev_pid}")
 print("Importing symbols from libSystem...")
 rz.cmd(".=!i*")
 rz.cmd(".=!ie* libSystem.B.dylib")

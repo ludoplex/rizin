@@ -13,8 +13,7 @@ from cmd_descs_util import CD_TYPE_OLDINPUT, compute_cname, get_handler_cname
 
 
 def get_yaml_files(basedir):
-    for file in glob.glob(os.path.join(basedir, "*.yaml")):
-        yield file
+    yield from glob.glob(os.path.join(basedir, "*.yaml"))
 
 
 def find_entry(commands, rzcommand):
@@ -35,10 +34,7 @@ def find_entry(commands, rzcommand):
 
 
 def get_c_handler_name_from_entry(e):
-    name = e["cname"]
-    if "handler" in e and e["handler"]:
-        name = e["handler"]
-
+    name = e["handler"] if "handler" in e and e["handler"] else e["cname"]
     if "type" in e and e["type"] == CD_TYPE_OLDINPUT:
         return f"rz_{name}"
 

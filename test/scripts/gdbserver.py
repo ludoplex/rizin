@@ -20,10 +20,9 @@ import sys
 
 def execute(cmd):
     with subprocess.Popen(
-        cmd, stderr=subprocess.PIPE, universal_newlines=True
-    ) as popen:
-        for stderr_line in iter(popen.stderr.readline, ""):
-            yield stderr_line
+            cmd, stderr=subprocess.PIPE, universal_newlines=True
+        ) as popen:
+        yield from iter(popen.stderr.readline, "")
 
 
 def main():
@@ -43,9 +42,7 @@ def main():
     args = parser.parse_args()
 
     while True:
-        for output in execute(
-            ["gdbserver", "{}:{}".format(args.host, args.port), args.binary]
-        ):
+        for output in execute(["gdbserver", f"{args.host}:{args.port}", args.binary]):
             if args.output:
                 print(output)
             # Exit once gdbserver is ready for connections

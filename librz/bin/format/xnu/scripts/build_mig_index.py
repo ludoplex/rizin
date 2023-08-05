@@ -48,10 +48,7 @@ def convert(trace_codes, trap_json):
                 continue
             data[num] = routine["name"]
 
-    result = []
-    for num in data:
-        result.append((num, data[num]))
-
+    result = list(data.items())
     result.sort(key=lambda x: x[0])
 
     print(header)
@@ -70,7 +67,7 @@ def convert(trace_codes, trap_json):
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("usage %s bsd/kern/trace_codes traps.json" % sys.argv[0])
+        print(f"usage {sys.argv[0]} bsd/kern/trace_codes traps.json")
         exit(1)
     else:
         convert(sys.argv[1], sys.argv[2])

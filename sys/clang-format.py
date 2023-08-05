@@ -56,7 +56,7 @@ def skip(filename):
 
 def get_matching_files():
     for directory, pattern in itertools.product(dirlist, patterns):
-        for filename in glob.iglob(directory + "/**/" + pattern, recursive=True):
+        for filename in glob.iglob(f"{directory}/**/{pattern}", recursive=True):
             if not skip(filename):
                 yield filename
 
@@ -74,10 +74,7 @@ def build_command(clangformat, check, filenames, verbose):
     cmd = [clangformat, "--style=file"]
     if verbose:
         cmd += ["--verbose"]
-    if check:
-        cmd += ["--Werror", "--dry-run"]
-    else:
-        cmd += ["-i"]
+    cmd += ["--Werror", "--dry-run"] if check else ["-i"]
     return cmd + filenames
 
 
@@ -92,20 +89,14 @@ def format_files(args, files):
 
 def get_file(args):
     filename = args.file
-    if should_scan(filename) and not skip(filename):
-        return [filename]
-
-    return []
+    return [filename] if should_scan(filename) and not skip(filename) else []
 
 
 def get_files(args):
     if args.diff:
         return get_edited_files(args)
 
-    if args.file:
-        return get_file(args)
-
-    return get_matching_files()
+    return get_file(args) if args.file else get_matching_files()
 
 
 def process(args):

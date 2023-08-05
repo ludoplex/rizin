@@ -13,9 +13,7 @@ import sys
 
 def parse():
     if len(sys.argv) <= 3:
-        print(
-            "Usage: {} <tree-sitter-path> <output-dir> <grammar.js>".format(sys.argv[0])
-        )
+        print(f"Usage: {sys.argv[0]} <tree-sitter-path> <output-dir> <grammar.js>")
         sys.exit(1)
 
     tree_sitter_exe = sys.argv[1]

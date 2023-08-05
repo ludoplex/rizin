@@ -52,9 +52,9 @@ def def2errdetail(x):
     return f'{{{val}, "{comment_str}"}}'
 
 defines = [l for l in open(zip_h, 'r').read().split('\n') if l.startswith('#define ZIP_ER')]
-zip_err_strs = '\n'.join([def2errstr(x) + ',' for x in defines])
+zip_err_strs = '\n'.join([f'{def2errstr(x)},' for x in defines])
 
 defines = [l for l in open(zipint_h, 'r').read().split('\n') if l.startswith('#define ZIP_ER_DETAIL')]
-zip_err_details = '\n'.join([def2errdetail(x) + ',' for x in defines])
+zip_err_details = '\n'.join([f'{def2errdetail(x)},' for x in defines])
 
 open(zip_err_str_c, 'w').write(TEMPLATE.format(zip_err_strs=zip_err_strs, zip_err_details=zip_err_details))

@@ -9,6 +9,7 @@
 
 """ Portable python script to check if subproject is up-to-date and warn if not """
 
+
 import filecmp
 import os
 import sys
@@ -16,7 +17,9 @@ import sys
 subproject = sys.argv[1]
 meson_root = os.environ["MESON_SOURCE_ROOT"]
 
-subproject_filename = os.path.join(meson_root, "subprojects", subproject + ".wrap")
+subproject_filename = os.path.join(
+    meson_root, "subprojects", f"{subproject}.wrap"
+)
 
 try:
     with open(subproject_filename, "r", encoding="utf8") as f:
