@@ -11,9 +11,9 @@ for fname in FILENAMES:
         data = f.read()
         data_size = len(data)
         shm = shared_memory.SharedMemory(create=True, size=data_size)
-        print("Copying %s..." % fname)
+        print(f"Copying {fname}...")
         shm.buf[:data_size] = data[:]
-        print("Copied %s succesfully" % fname)
+        print(f"Copied {fname} succesfully")
         print("-------------")
         print("Shared buffer size 0x{0:x}".format(data_size))
         print("-------------")

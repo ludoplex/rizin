@@ -135,17 +135,17 @@ def main():
     meta_meta_cases = {}
 
     if len(sys.argv) != 2:
-        print("Usage: %s <path to binary file>" % sys.argv[0])
+        print(f"Usage: {sys.argv[0]} <path to binary file>")
         return 0
 
     if not os.path.exists(sys.argv[1]):
-        print("No such file %s" % sys.argv[1])
+        print(f"No such file {sys.argv[1]}")
         return 1
 
     fsize = os.stat(sys.argv[1]).st_size
 
     if fsize < MAX_OPLEN:
-        print("muy pequeño:  %s" % sys.argv[1])
+        print(f"muy pequeño:  {sys.argv[1]}")
         return 1
 
     with open(sys.argv[1], "rb") as f:

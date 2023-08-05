@@ -26,7 +26,7 @@ r = rzpipe.open()
 def walk_back_until(addr, pattern, min_addr):
     cursor = addr
     while cursor >= min_addr:
-        op = r.cmdj("aoj@" + str(cursor))[0]["opcode"]
+        op = r.cmdj(f"aoj@{str(cursor)}")[0]["opcode"]
         if re.search(pattern, op) != None:
             return cursor + 4
         if re.search(r"^ret", op) != None:
@@ -44,14 +44,14 @@ def carve_trap_num(addr, flag):
     r.cmd("e emu.write=true")
     r.cmd("aei")
     r.cmd("aeim")
-    min_addr = int(r.cmd("?v " + flag), 0)
+    min_addr = int(r.cmd(f"?v {flag}"), 0)
     emu_start = walk_back_until(addr - 4, r"^b|^ret|^invalid", min_addr)
-    r.cmd("s " + str(emu_start))
+    r.cmd(f"s {str(emu_start)}")
     obj = r.cmd("aefa 0x%08x~[0]:0" % addr)
-    r.cmd("s " + saved_seek)
-    val = r.cmdj("pv4j @ %s+0x14" % obj.strip())[0]["value"]
+    r.cmd(f"s {saved_seek}")
+    val = r.cmdj(f"pv4j @ {obj.strip()}+0x14")[0]["value"]
     if val == 0:
-        val = r.cmdj("pv4j @ %s+0x18" % obj.strip())[0]["value"]
+        val = r.cmdj(f"pv4j @ {obj.strip()}+0x18")[0]["value"]
     return val
 
 
@@ -66,9 +66,9 @@ def carve_traps():
         r.cmd("aae $SS @ $S")
         r.cmd("shu")
         msgs = r.cmdj("axtj @ sym._mach_msg")
-        if len(msgs) == 0:
-            print("Cannot find refs to mach_msg!")
-            return
+    if len(msgs) == 0:
+        print("Cannot find refs to mach_msg!")
+        return
 
     traps = {}
     for ref in msgs:
@@ -81,9 +81,8 @@ def carve_traps():
         traps[addr] = {"name": name}
 
     result = []
-    for addr in traps:
-        trap = traps[addr]
-        flag = "sym.%s" % trap["name"]
+    for addr, trap in traps.items():
+        flag = f'sym.{trap["name"]}'
         trap["name"] = beautify_name(trap["name"])
         trap["num"] = carve_trap_num(addr, flag)
         if trap["num"] != None:
